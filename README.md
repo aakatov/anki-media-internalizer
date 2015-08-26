@@ -1,13 +1,19 @@
 # Overview
-Media Internalizer is an addon for [Anki](http://ankisrs.net/). It looks for the notes in a specified deck that have a field containing an HTML tag with http-reference in it, such as `<img src="http://server.com/img.jpg">`. For example, if you use AnkiWeb, it will create external references every time you paste an image.
-This addon finds such references, downloads referenced files into Anki's internal local storage and updates the references.
+Media Internalizer is an addon for [Anki](http://ankisrs.net/). It looks for notes in a specified deck that have a field
+containing an HTML tag with an http-reference in it, such as `<img src="http://server.com/img.jpg">`. When you use AnkiWeb,
+it creates external references to an image every time you paste an image onto a card. Unlike the desktop version,
+only the reference is stored and if you try to use Anki without an Internet connection, the image is not visible.
+This addon finds such references, downloads the referenced files into Anki's internal local storage and updates the references.
+
 # Installation
 1. In Anki, select the Tools > Add-ons > Open Add-ons Folder... menu item.
 2. Place the file MediaInternalizer.py in the folder opened.
 3. Restart Anki.
 
 # How to Use
-Before the use, it's strongly recommended to backup your collection and media folder. See Anki [manual](http://ankisrs.net/docs/manual.html#managing-files-and-your-collection) for the details. 
-Make sure that you have Internet connection.
+Before using the addon for the first time, it is strongly recommended that you backup your collection and media folder.
+See the Anki [manual](http://ankisrs.net/docs/manual.html#managing-files-and-your-collection) for details.
+Make sure that you have an Internet connection.
 
-To run the addon, on the main Anki screen, locate the "gears" button to the right of the deck you want to process. Select "Internalize Media" in the drop-down menu.
+To run the addon, on the main Anki screen, locate the "gears" button to the right of the deck you want to process.
+Select "Internalize Media" in the drop-down menu.
