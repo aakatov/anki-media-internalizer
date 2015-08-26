@@ -5,6 +5,7 @@ This addon finds such references, downloads referenced files into Anki's interna
 1. In Anki, select the Tools > Add-ons > Open Add-ons Folder... menu item.
 2. Place the file MediaInternalizer.py in the folder opened.
 3. Restart Anki.
+
 # How to Use
 Before the use, it's strongly recommended to backup your collection and media folder. See Anki [manual](http://ankisrs.net/docs/manual.html#managing-files-and-your-collection) for the details. 
 Make sure that you have Internet connection.
