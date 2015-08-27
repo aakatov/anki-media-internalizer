@@ -1,11 +1,9 @@
 import re
 import urllib2
-from aqt import mw
 from aqt.utils import showInfo, showWarning, askUser
 from aqt.qt import *
 from anki.utils import intTime
 from aqt.deckbrowser import DeckBrowser
-from anki.notes import Note
 
 
 def myShowOptions(self, did):
@@ -19,9 +17,10 @@ def myShowOptions(self, did):
     a.connect(a, SIGNAL("triggered()"), lambda did=did: self._export(did))
     a = m.addAction(_("Delete"))
     a.connect(a, SIGNAL("triggered()"), lambda did=did: self._delete(did))
-    # add the menu item
+    # patch: add the menu item
     a = m.addAction("Internalize Media")
     a.connect(a, SIGNAL("triggered()"), lambda did=did: self._internalize(did))
+    # patch end
     m.exec_(QCursor.pos())
 
 
@@ -35,24 +34,25 @@ def retrieveURL(mw, url):
 
 def internailzeMedia(self, did):
     """Search http-referenced resources in notes, download them into local storage and change the references."""
-    if not askUser("Have you backed up your collection and media folder?"):
+    if DeckBrowser.internailze_ask_backup and not askUser("Have you backed up your collection and media folder?"):
         return
+    DeckBrowser.internailze_ask_backup = False  # don't ask again
     affected_count = 0
     pattern = re.compile('<[^>]+(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)[^>]*>',
                          re.IGNORECASE)
     deck = self.mw.col.decks.get(did)
-    nids = mw.col.db.list(
+    nids = self.mw.col.db.list(
         "select distinct notes.id from notes inner join cards on notes.id = cards.nid where cards.did = %d and (lower(notes.flds) like '%%http://%%' or lower(notes.flds) like '%%https://%%')" %
         deck["id"])
-    mw.progress.start(max=len(nids), min=0, immediate=True)
+    self.mw.progress.start(max=len(nids), min=0, immediate=True)
     try:
         for nid in nids:
-            note = Note(mw.col, id=nid)
+            note = self.mw.col.getNote(nid)
             changed = False
             for fld, val in note.items():
                 for url in re.findall(pattern, val):
                     try:
-                        filename = retrieveURL(mw, url)
+                        filename = retrieveURL(self.mw, url)
                         if filename:
                             val = val.replace(url, filename)
                             changed = True
@@ -63,13 +63,14 @@ def internailzeMedia(self, did):
             if changed:
                 note.flush(intTime())
                 affected_count += 1
-            mw.progress.update()
+            self.mw.progress.update()
     finally:
         if affected_count > 0:
-            mw.col.media.findChanges()
-        mw.progress.finish()
+            self.mw.col.media.findChanges()
+        self.mw.progress.finish()
         showInfo("Deck: %s\nNotes affected: %d" % (deck["name"], affected_count))
 
 
+DeckBrowser.internailze_ask_backup = True
 DeckBrowser._showOptions = myShowOptions
 DeckBrowser._internalize = internailzeMedia
