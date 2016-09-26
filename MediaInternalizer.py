@@ -1,5 +1,6 @@
 import re
 import urllib2
+import httplib
 from aqt.utils import showInfo, showWarning, askUser
 from aqt.qt import *
 from anki.utils import intTime
@@ -56,7 +57,7 @@ def internailzeMedia(self, did):
                         if filename:
                             val = val.replace(url, filename)
                             changed = True
-                    except urllib2.URLError as e:
+                    except (IOError, httplib.HTTPException) as e:
                         if not askUser("An error occurred while opening %s\n%s\n\nDo you want to proceed?" % (url, e)):
                             return
                 note[fld] = val
