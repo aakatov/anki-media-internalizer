@@ -1,77 +1,66 @@
 import re
-import urllib2
-import httplib
+import urllib.request, urllib.error, urllib.parse
 from aqt.utils import showInfo, showWarning, askUser
+from aqt import mw
 from aqt.qt import *
 from anki.utils import intTime
+from anki import version
+from anki.hooks import addHook
 from aqt.deckbrowser import DeckBrowser
 
 
-def myShowOptions(self, did):
-    """Monkey patching of DeckBrowser._showOptions."""
-    m = QMenu(self.mw)
-    a = m.addAction(_("Rename"))
-    a.connect(a, SIGNAL("triggered()"), lambda did=did: self._rename(did))
-    a = m.addAction(_("Options"))
-    a.connect(a, SIGNAL("triggered()"), lambda did=did: self._options(did))
-    a = m.addAction(_("Export"))
-    a.connect(a, SIGNAL("triggered()"), lambda did=did: self._export(did))
-    a = m.addAction(_("Delete"))
-    a.connect(a, SIGNAL("triggered()"), lambda did=did: self._delete(did))
-    # patch: add the menu item
+def onShowDeckOptions(m, did):
     a = m.addAction("Internalize Media")
-    a.connect(a, SIGNAL("triggered()"), lambda did=did: self._internalize(did))
-    # patch end
-    m.exec_(QCursor.pos())
+    a.triggered.connect(lambda b, did=did: internailzeMedia(did))
 
 
 def retrieveURL(mw, url):
     """Download file into media folder and return local filename or None."""
-    req = urllib2.Request(url, None, {'User-Agent': 'Mozilla/5.0 (compatible; Anki)'})
-    filecontents = urllib2.urlopen(req).read()
-    path = unicode(urllib2.unquote(url.encode("utf8")), "utf8")
+    req = urllib.request.Request(url, None, {'User-Agent': 'Mozilla/5.0 (compatible; Anki)'})
+    filecontents = urllib.request.urlopen(req).read()
+    path = urllib.parse.unquote(url)
     return mw.col.media.writeData(path, filecontents)
 
+internailze_ask_backup = True
 
-def internailzeMedia(self, did):
+def internailzeMedia(did):
     """Search http-referenced resources in notes, download them into local storage and change the references."""
-    if DeckBrowser.internailze_ask_backup and not askUser("Have you backed up your collection and media folder?"):
+    global internailze_ask_backup
+    if internailze_ask_backup and not askUser("Have you backed up your collection and media folder?"):
         return
-    DeckBrowser.internailze_ask_backup = False  # don't ask again
+    internailze_ask_backup = False  # don't ask again
     affected_count = 0
     pattern = re.compile('<[^>]+(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)[^>]*>',
                          re.IGNORECASE)
-    deck = self.mw.col.decks.get(did)
-    nids = self.mw.col.db.list(
+    deck = mw.col.decks.get(did)
+    nids = mw.col.db.list(
         "select distinct notes.id from notes inner join cards on notes.id = cards.nid where cards.did = %d and (lower(notes.flds) like '%%http://%%' or lower(notes.flds) like '%%https://%%')" %
         deck["id"])
-    self.mw.progress.start(max=len(nids), min=0, immediate=True)
+    mw.progress.start(max=len(nids), min=0, immediate=True)
     try:
         for nid in nids:
-            note = self.mw.col.getNote(nid)
+            note = mw.col.getNote(nid)
             changed = False
             for fld, val in note.items():
                 for url in re.findall(pattern, val):
                     try:
-                        filename = retrieveURL(self.mw, url)
+                        filename = retrieveURL(mw, url)
                         if filename:
                             val = val.replace(url, filename)
                             changed = True
-                    except (IOError, httplib.HTTPException) as e:
+                    except urllib.error.URLError as e:
                         if not askUser("An error occurred while opening %s\n%s\n\nDo you want to proceed?" % (url, e)):
                             return
                 note[fld] = val
             if changed:
                 note.flush(intTime())
                 affected_count += 1
-            self.mw.progress.update()
+            mw.progress.update()
     finally:
         if affected_count > 0:
-            self.mw.col.media.findChanges()
-        self.mw.progress.finish()
+            mw.col.media.findChanges()
+        mw.progress.finish()
         showInfo("Deck: %s\nNotes affected: %d" % (deck["name"], affected_count))
 
 
-DeckBrowser.internailze_ask_backup = True
-DeckBrowser._showOptions = myShowOptions
-DeckBrowser._internalize = internailzeMedia
+addHook("showDeckOptions", onShowDeckOptions)
