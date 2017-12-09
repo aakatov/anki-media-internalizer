@@ -30,8 +30,7 @@ def internailzeMedia(did):
         return
     internailze_ask_backup = False  # don't ask again
     affected_count = 0
-    pattern = re.compile('<[^>]+(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)[^>]*>',
-                         re.IGNORECASE)
+    pattern = re.compile('<[^>]+(http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+)[^>]*>')
     deck = mw.col.decks.get(did)
     nids = mw.col.db.list(
         "select distinct notes.id from notes inner join cards on notes.id = cards.nid where cards.did = %d and (lower(notes.flds) like '%%http://%%' or lower(notes.flds) like '%%https://%%')" %
@@ -51,8 +50,8 @@ def internailzeMedia(did):
                     except urllib.error.URLError as e:
                         if not askUser("An error occurred while opening %s\n%s\n\nDo you want to proceed?" % (url, e)):
                             return
-                note[fld] = val
             if changed:
+                note[fld] = val
                 note.flush(intTime())
                 affected_count += 1
             mw.progress.update()
