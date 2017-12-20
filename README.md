@@ -1,7 +1,8 @@
 # Overview
 Media Internalizer is an addon for [Anki](http://ankisrs.net/). It looks for notes in a specified deck that have a field
-containing an HTML tag with an http-reference in it, such as `<img src="http://server.com/img.jpg">`. When you use AnkiWeb,
-it creates external references to an image every time you paste an image onto a card. Unlike the desktop version,
+containing an HTML `<img>` tag or Anki `[sound]` tag with an http-reference in it, such as `<img src="http://server.com/img.jpg">`
+or `[sound:https://server.com/audio.mp3]`. 
+For example, when you use AnkiWeb, it creates external references to an image every time you paste an image onto a card. Unlike the desktop version,
 only the reference is stored and if you try to use Anki without an Internet connection, the image is not visible.
 This addon finds such references, downloads the referenced files into Anki's internal local storage and updates the references.
 
