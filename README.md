@@ -8,9 +8,7 @@ This addon finds such references, downloads the referenced files into Anki's int
 This addon is [published on AnkiWeb](https://ankiweb.net/shared/info/221033553).
 
 # Installation
-1. In Anki, select the Tools > Add-ons > Open Add-ons Folder... menu item.
-2. Place the file MediaInternalizer.py in the folder opened.
-3. Restart Anki.
+Please, follow instructions on [the AnkiWeb add-on page](https://ankiweb.net/shared/info/221033553).
 
 # How to Use
 Before using the addon, it is strongly recommended that you backup your collection and media folder.
