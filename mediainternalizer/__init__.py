@@ -52,12 +52,12 @@ def internailzeMedia(did):
                         filename = retrieveURL(mw, htmlUnescapedUrl)
                         if filename:
                             val = val.replace(url, filename)
+                            note[fld] = val
                             changed = True
                     except urllib.error.URLError as e:
                         if not askUser("An error occurred while opening %s\n%s\n\nDo you want to proceed?" % (htmlUnescapedUrl.encode("utf8"), e)):
                             return
             if changed:
-                note[fld] = val
                 note.flush(intTime())
                 affected_count += 1
             mw.progress.update()
