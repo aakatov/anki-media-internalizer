@@ -44,9 +44,9 @@ def internailzeMedia(self, did):
     DeckBrowser.internailze_ask_backup = False  # don't ask again
     affected_count = 0
     # regex for <img>
-    patternImg = re.compile('<img[^>]+(https?://(?:[a-z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+)[^>]*>', re.IGNORECASE)
+    patternImg = re.compile('<img[^>]+?(https?://(?:[a-z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+)[^>]*>', re.IGNORECASE)
     # regex for [sound]
-    patternSound = re.compile('\[sound:[^\]]*(https?://(?:[a-z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+)[^\]]*\]', re.IGNORECASE)
+    patternSound = re.compile('\[sound:[^\]]*?(https?://(?:[a-z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+)[^\]]*\]', re.IGNORECASE)
     deck = self.mw.col.decks.get(did)
     nids = self.mw.col.db.list(
         "select distinct notes.id from notes inner join cards on notes.id = cards.nid where cards.did = %d and (lower(notes.flds) like '%%http://%%' or lower(notes.flds) like '%%https://%%')" %
@@ -57,16 +57,20 @@ def internailzeMedia(self, did):
             note = self.mw.col.getNote(nid)
             changed = False
             for fld, val in note.items():
-                for url in re.findall(patternImg, val) + re.findall(patternSound, val):
+                mapUnescape = lambda x: (x, HTMLParser().unescape(x))
+                mapDoNothing = lambda x: (x, x)
+                # fieldUrl - url representation in a field
+                # url - clean url
+                for fieldUrl, url in map(mapDoNothing, re.findall(patternImg, val)) \
+                        + map(mapUnescape, re.findall(patternSound, val)):
                     try:
-                        htmlUnescapedUrl = HTMLParser().unescape(url)
-                        filename = retrieveURL(self.mw, htmlUnescapedUrl)
+                        filename = retrieveURL(self.mw, url)
                         if filename:
-                            val = val.replace(url, filename)
+                            val = val.replace(fieldUrl, filename)
                             note[fld] = val
                             changed = True
                     except (IOError, httplib.HTTPException) as e:
-                        if not askUser("An error occurred while opening %s\n%s\n\nDo you want to proceed?" % (htmlUnescapedUrl.encode("utf8"), e)):
+                        if not askUser("An error occurred while opening %s\n%s\n\nDo you want to proceed?" % (url.encode("utf8"), e)):
                             return
             if changed:
                 note.flush(intTime())
