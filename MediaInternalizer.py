@@ -1,9 +1,10 @@
+import os
 import re
 import urllib2
 import httplib
 from aqt.utils import showInfo, showWarning, askUser
 from aqt.qt import *
-from anki.utils import intTime
+from anki.utils import intTime, checksum
 from aqt.deckbrowser import DeckBrowser
 from HTMLParser import HTMLParser
 
@@ -34,7 +35,10 @@ def retrieveURL(mw, url):
     # strip off any query string
     url = re.sub(r"\?.*?$", "", url)
     path = unicode(urllib2.unquote(url.encode("utf8")), "utf8")
-    return mw.col.media.writeData(path, filecontents)
+    fname = os.path.basename(path)
+    if not fname:
+        fname = checksum(filecontents)
+    return mw.col.media.writeData(unicode(fname), filecontents)
 
 
 def internailzeMedia(self, did):
