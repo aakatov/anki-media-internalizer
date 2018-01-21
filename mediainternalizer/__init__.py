@@ -1,9 +1,10 @@
 import html
+import os
 import re
 import urllib.request, urllib.error, urllib.parse
 from aqt.utils import showInfo, showWarning, askUser
 from aqt import mw
-from anki.utils import intTime
+from anki.utils import intTime, checksum
 from anki.hooks import addHook
 
 internailze_ask_backup = True
@@ -22,7 +23,10 @@ def retrieveURL(mw, url):
     # strip off any query string
     url = re.sub(r"\?.*?$", "", url)
     path = urllib.parse.unquote(url)
-    return mw.col.media.writeData(path, filecontents, typeHint=ct)
+    fname = os.path.basename(path)
+    if not fname:
+        fname = checksum(filecontents)
+    return mw.col.media.writeData(fname, filecontents, typeHint=ct)
 
 
 def internailzeMedia(did):
@@ -33,7 +37,7 @@ def internailzeMedia(did):
     internailze_ask_backup = False  # don't ask again
     affected_count = 0
     # regex for <img>
-    patternImg = re.compile('<img[^>]+(https?://(?:[a-z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+)[^>]*>', re.IGNORECASE)
+    patternImg = re.compile('<img[^>]+?(https?://(?:[a-z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+)[^>]*>', re.IGNORECASE)
     # regex for [sound]
     patternSound = re.compile('\[sound:[^\]]*(https?://(?:[a-z]|[0-9]|[$-_@.&+]|[!*\(\),]|(?:%[0-9a-f][0-9a-f]))+)[^\]]*\]', re.IGNORECASE)
     deck = mw.col.decks.get(did)
@@ -46,16 +50,20 @@ def internailzeMedia(did):
             note = mw.col.getNote(nid)
             changed = False
             for fld, val in note.items():
-                for url in re.findall(patternImg, val) + re.findall(patternSound, val):
+                mapUnescape = lambda x: (x, html.unescape(x))
+                mapDoNothing = lambda x: (x, x)
+                # fieldUrl - url representation in a field
+                # url - clean url
+                for fieldUrl, url in list(map(mapDoNothing, re.findall(patternImg, val))) \
+                        + list(map(mapUnescape, re.findall(patternSound, val))):
                     try:
-                        htmlUnescapedUrl = html.unescape(url)
-                        filename = retrieveURL(mw, htmlUnescapedUrl)
+                        filename = retrieveURL(mw, url)
                         if filename:
-                            val = val.replace(url, filename)
+                            val = val.replace(fieldUrl, filename)
                             note[fld] = val
                             changed = True
                     except urllib.error.URLError as e:
-                        if not askUser("An error occurred while opening %s\n%s\n\nDo you want to proceed?" % (htmlUnescapedUrl.encode("utf8"), e)):
+                        if not askUser("An error occurred while opening %s\n%s\n\nDo you want to proceed?" % (url.encode("utf8"), e)):
                             return
             if changed:
                 note.flush(intTime())
